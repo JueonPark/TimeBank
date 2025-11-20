@@ -3,8 +3,6 @@ name: Generate Debug APK
 on:
   push:
     branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
   workflow_dispatch: # Allows you to manually trigger the workflow from the Actions tab
 
 jobs:
