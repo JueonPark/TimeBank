@@ -89,9 +89,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateTimerText() {
-        val minutes = TimeUnit.MILLISECONDS.toMinutes(timeLeftInMillis)
-        val seconds = TimeUnit.MILLISECONDS.toSeconds(timeLeftInMillis) - TimeUnit.MINUTES.toSeconds(minutes)
-        val timeFormatted = String.format("%02d:%02d", minutes, seconds)
+        val hours = TimeUnit.MILLISECONDS.toHours(timeLeftInMillis)
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(timeLeftInMillis) - TimeUnit.HOURS.toMinutes(hours)
+        val seconds = TimeUnit.MILLISECONDS.toSeconds(timeLeftInMillis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(timeLeftInMillis))
+        val timeFormatted = String.format("%02d:%02d:%02d", hours, minutes, seconds)
         timerText.text = timeFormatted
     }
 }
