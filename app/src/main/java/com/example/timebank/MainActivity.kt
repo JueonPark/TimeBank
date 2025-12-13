@@ -55,6 +55,10 @@ class MainActivity : AppCompatActivity() {
     private fun addTime(milliseconds: Long) {
         timeLeftInMillis += milliseconds
         updateTimerText()
+        if (timerRunning) {
+            countDownTimer?.cancel()
+            startTimer()
+        }
     }
 
     private fun startTimer() {
