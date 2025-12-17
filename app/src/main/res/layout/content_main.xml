@@ -14,48 +14,60 @@
         android:layout_height="wrap_content"
         android:text="00:00"
         android:textSize="60sp"
-        app:layout_constraintBottom_toTopOf="@+id/linearLayout"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.3" />
 
-    <LinearLayout
-        android:id="@+id/linearLayout"
-        android:layout_width="match_parent"
+    <Button
+        android:id="@+id/start_button"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:text="Start"
+        app:layout_constraintBottom_toTopOf="@+id/reset_button"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/reset_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Reset"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="16dp"/>
 
-        <Button
-            android:id="@+id/start_button"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Start" />
+    <Button
+        android:id="@+id/add_1_min_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="+1 Min"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"/>
 
-        <Button
-            android:id="@+id/add_1_min_button"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="+1 Min" />
+    <Button
+        android:id="@+id/add_5_min_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="+5 Min"
+        app:layout_constraintBottom_toTopOf="@+id/add_1_min_button"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"/>
 
-        <Button
-            android:id="@+id/add_5_min_button"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="+5 Min" />
-        
-        <Button
-            android:id="@+id/add_10_min_button"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="+10 Min" />
-
-    </LinearLayout>
+    <Button
+        android:id="@+id/add_10_min_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="+10 Min"
+        app:layout_constraintBottom_toTopOf="@+id/add_5_min_button"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

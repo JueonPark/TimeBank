@@ -14,6 +14,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var add1MinButton: Button
     private lateinit var add5MinButton: Button
     private lateinit var add10MinButton: Button
+    private lateinit var resetButton: Button
 
     private var countDownTimer: CountDownTimer? = null
     private var timeLeftInMillis: Long = 0
@@ -28,6 +29,7 @@ class MainActivity : AppCompatActivity() {
         add1MinButton = findViewById(R.id.add_1_min_button)
         add5MinButton = findViewById(R.id.add_5_min_button)
         add10MinButton = findViewById(R.id.add_10_min_button)
+        resetButton = findViewById(R.id.reset_button)
 
         startButton.setOnClickListener {
             if (timerRunning) {
@@ -47,6 +49,10 @@ class MainActivity : AppCompatActivity() {
 
         add10MinButton.setOnClickListener {
             addTime(10 * 60 * 1000)
+        }
+
+        resetButton.setOnClickListener {
+            resetTimer()
         }
 
         updateTimerText()
@@ -84,6 +90,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun pauseTimer() {
         countDownTimer?.cancel()
+        timerRunning = false
+        startButton.text = "Start"
+    }
+
+    private fun resetTimer() {
+        countDownTimer?.cancel()
+        timeLeftInMillis = 0
+        updateTimerText()
         timerRunning = false
         startButton.text = "Start"
     }
