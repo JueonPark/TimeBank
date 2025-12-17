@@ -1,159 +1,50 @@
 package com.example.timebank
 
-import android.content.Context
 import android.os.Bundle
-import android.os.CountDownTimer
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import java.util.concurrent.TimeUnit
+import androidx.fragment.app.Fragment
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var timerText: TextView
-    private lateinit var startButton: Button
-    private lateinit var add1MinButton: Button
-    private lateinit var add5MinButton: Button
-    private lateinit var add10MinButton: Button
-    private lateinit var resetButton: Button
-
-    private var countDownTimer: CountDownTimer? = null
-    private var timeLeftInMillis: Long = 0
-    private var timerRunning: Boolean = false
-
-    private val PREFS_NAME = "TimeBankPrefs"
-    private val PREF_PREFIX_KEY = "preset_time_"
+    private val onNavigationItemSelectedListener = BottomNavigationView.OnNavigationItemSelectedListener { item ->
+        when (item.itemId) {
+            R.id.section_1 -> {
+                loadFragment(TimerSectionFragment.newInstance(1))
+                return@OnNavigationItemSelectedListener true
+            }
+            R.id.section_2 -> {
+                loadFragment(TimerSectionFragment.newInstance(2))
+                return@OnNavigationItemSelectedListener true
+            }
+            R.id.section_3 -> {
+                loadFragment(TimerSectionFragment.newInstance(3))
+                return@OnNavigationItemSelectedListener true
+            }
+            R.id.section_4 -> {
+                loadFragment(TimerSectionFragment.newInstance(4))
+                return@OnNavigationItemSelectedListener true
+            }
+        }
+        false
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        timerText = findViewById(R.id.timer_text)
-        startButton = findViewById(R.id.start_button)
-        add1MinButton = findViewById(R.id.add_1_min_button)
-        add5MinButton = findViewById(R.id.add_5_min_button)
-        add10MinButton = findViewById(R.id.add_10_min_button)
-        resetButton = findViewById(R.id.reset_button)
+        val navView: BottomNavigationView = findViewById(R.id.bottom_navigation)
+        navView.setOnNavigationItemSelectedListener(onNavigationItemSelectedListener)
 
-        setupPresetButtons()
-
-        startButton.setOnClickListener {
-            if (timerRunning) {
-                pauseTimer()
-            } else {
-                startTimer()
-            }
-        }
-
-        resetButton.setOnClickListener {
-            resetTimer()
-        }
-
-        updateTimerText()
-    }
-
-    private fun setupPresetButtons() {
-        setupPresetButton(add1MinButton, 1, R.id.add_1_min_button)
-        setupPresetButton(add5MinButton, 5, R.id.add_5_min_button)
-        setupPresetButton(add10MinButton, 10, R.id.add_10_min_button)
-    }
-
-    private fun setupPresetButton(button: Button, defaultMinutes: Int, buttonId: Int) {
-        val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val presetKey = PREF_PREFIX_KEY + buttonId
-        var minutes = sharedPreferences.getInt(presetKey, defaultMinutes)
-        if (minutes <= 0) {
-            minutes = defaultMinutes
-        }
-
-        button.text = "Add $minutes min"
-        button.tag = minutes
-        button.setOnClickListener {
-            val timeToAdd = (it.tag as Int) * 60 * 1000L
-            addTime(timeToAdd)
-        }
-        button.setOnLongClickListener {
-            showEditDialog(button, presetKey)
-            true
+        // Load the default fragment
+        if (savedInstanceState == null) {
+            loadFragment(TimerSectionFragment.newInstance(1))
         }
     }
 
-    private fun showEditDialog(button: Button, presetKey: String) {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Edit Preset Time")
-
-        val currentMinutes = button.tag as Int
-        val input = EditText(this)
-        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
-        input.setText(currentMinutes.toString())
-        builder.setView(input)
-
-        builder.setPositiveButton("Save") { dialog, _ ->
-            val newMinutes = input.text.toString().toIntOrNull()
-            if (newMinutes != null && newMinutes > 0) {
-                val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                sharedPreferences.edit().putInt(presetKey, newMinutes).apply()
-                button.text = "Add $newMinutes min"
-                button.tag = newMinutes
-            }
-            dialog.dismiss()
-        }
-        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
-
-        builder.show()
-    }
-
-    private fun addTime(milliseconds: Long) {
-        timeLeftInMillis += milliseconds
-        updateTimerText()
-        if (timerRunning) {
-            countDownTimer?.cancel()
-            startTimer()
-        }
-    }
-
-    private fun startTimer() {
-        if (timeLeftInMillis > 0) {
-            countDownTimer = object : CountDownTimer(timeLeftInMillis, 1000) {
-                override fun onTick(millisUntilFinished: Long) {
-                    timeLeftInMillis = millisUntilFinished
-                    updateTimerText()
-                }
-
-                override fun onFinish() {
-                    timerRunning = false
-                    startButton.text = "Start"
-                    timeLeftInMillis = 0
-                    updateTimerText()
-                }
-            }.start()
-
-            timerRunning = true
-            startButton.text = "Pause"
-        }
-    }
-
-    private fun pauseTimer() {
-        countDownTimer?.cancel()
-        timerRunning = false
-        startButton.text = "Start"
-    }
-
-    private fun resetTimer() {
-        countDownTimer?.cancel()
-        timeLeftInMillis = 0
-        updateTimerText()
-        timerRunning = false
-        startButton.text = "Start"
-    }
-
-    private fun updateTimerText() {
-        val hours = TimeUnit.MILLISECONDS.toHours(timeLeftInMillis)
-        val minutes = TimeUnit.MILLISECONDS.toMinutes(timeLeftInMillis) - TimeUnit.HOURS.toMinutes(hours)
-        val seconds = TimeUnit.MILLISECONDS.toSeconds(timeLeftInMillis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(timeLeftInMillis))
-        val timeFormatted = String.format("%02d:%02d:%02d", hours, minutes, seconds)
-        timerText.text = timeFormatted
+    private fun loadFragment(fragment: Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .commit()
     }
 }

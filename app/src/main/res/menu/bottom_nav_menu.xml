@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/section_1"
+        android:title="Section 1"
+        android:icon="@android:drawable/ic_menu_agenda" />
+    <item
+        android:id="@+id/section_2"
+        android:title="Section 2"
+        android:icon="@android:drawable/ic_menu_agenda" />
+    <item
+        android:id="@+id/section_3"
+        android:title="Section 3"
+        android:icon="@android:drawable/ic_menu_agenda" />
+    <item
+        android:id="@+id/section_4"
+        android:title="Section 4"
+        android:icon="@android:drawable/ic_menu_agenda" />
+</menu>
