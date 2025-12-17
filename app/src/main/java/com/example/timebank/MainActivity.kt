@@ -1,9 +1,12 @@
 package com.example.timebank
 
+import android.content.Context
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import java.util.concurrent.TimeUnit
 
@@ -20,6 +23,9 @@ class MainActivity : AppCompatActivity() {
     private var timeLeftInMillis: Long = 0
     private var timerRunning: Boolean = false
 
+    private val PREFS_NAME = "TimeBankPrefs"
+    private val PREF_PREFIX_KEY = "preset_time_"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -31,6 +37,8 @@ class MainActivity : AppCompatActivity() {
         add10MinButton = findViewById(R.id.add_10_min_button)
         resetButton = findViewById(R.id.reset_button)
 
+        setupPresetButtons()
+
         startButton.setOnClickListener {
             if (timerRunning) {
                 pauseTimer()
@@ -39,23 +47,62 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        add1MinButton.setOnClickListener {
-            addTime(60 * 1000)
-        }
-
-        add5MinButton.setOnClickListener {
-            addTime(5 * 60 * 1000)
-        }
-
-        add10MinButton.setOnClickListener {
-            addTime(10 * 60 * 1000)
-        }
-
         resetButton.setOnClickListener {
             resetTimer()
         }
 
         updateTimerText()
+    }
+
+    private fun setupPresetButtons() {
+        setupPresetButton(add1MinButton, 1, R.id.add_1_min_button)
+        setupPresetButton(add5MinButton, 5, R.id.add_5_min_button)
+        setupPresetButton(add10MinButton, 10, R.id.add_10_min_button)
+    }
+
+    private fun setupPresetButton(button: Button, defaultMinutes: Int, buttonId: Int) {
+        val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val presetKey = PREF_PREFIX_KEY + buttonId
+        var minutes = sharedPreferences.getInt(presetKey, defaultMinutes)
+        if (minutes <= 0) {
+            minutes = defaultMinutes
+        }
+
+        button.text = "Add $minutes min"
+        button.tag = minutes
+        button.setOnClickListener {
+            val timeToAdd = (it.tag as Int) * 60 * 1000L
+            addTime(timeToAdd)
+        }
+        button.setOnLongClickListener {
+            showEditDialog(button, presetKey)
+            true
+        }
+    }
+
+    private fun showEditDialog(button: Button, presetKey: String) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Edit Preset Time")
+
+        val currentMinutes = button.tag as Int
+        val input = EditText(this)
+        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        input.setText(currentMinutes.toString())
+        builder.setView(input)
+
+        builder.setPositiveButton("Save") { dialog, _ ->
+            val newMinutes = input.text.toString().toIntOrNull()
+            if (newMinutes != null && newMinutes > 0) {
+                val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                sharedPreferences.edit().putInt(presetKey, newMinutes).apply()
+                button.text = "Add $newMinutes min"
+                button.tag = newMinutes
+            }
+            dialog.dismiss()
+        }
+        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+
+        builder.show()
     }
 
     private fun addTime(milliseconds: Long) {
