@@ -1,6 +1,8 @@
 package com.example.timebank
 
 import android.content.Context
+import android.media.Ringtone
+import android.media.RingtoneManager
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.view.LayoutInflater
@@ -21,10 +23,12 @@ class TimerSectionFragment : Fragment() {
     private lateinit var add5MinButton: Button
     private lateinit var add10MinButton: Button
     private lateinit var resetButton: Button
+    private lateinit var stopAlarmButton: Button
 
     private var countDownTimer: CountDownTimer? = null
     private var timeLeftInMillis: Long = 0
     private var timerRunning: Boolean = false
+    private var ringtone: Ringtone? = null
 
     private val PREFS_NAME = "TimeBankPrefs"
     private var prefPrefixKey = ""
@@ -54,6 +58,7 @@ class TimerSectionFragment : Fragment() {
         add5MinButton = view.findViewById(R.id.add_5_min_button)
         add10MinButton = view.findViewById(R.id.add_10_min_button)
         resetButton = view.findViewById(R.id.reset_button)
+        stopAlarmButton = view.findViewById(R.id.stop_alarm_button)
 
         setupPresetButtons()
 
@@ -68,6 +73,10 @@ class TimerSectionFragment : Fragment() {
         resetButton.setOnClickListener {
             resetTimer()
         }
+        
+        stopAlarmButton.setOnClickListener {
+            stopAlarm()
+        }
 
         updateTimerText()
     }
@@ -77,6 +86,7 @@ class TimerSectionFragment : Fragment() {
         if (timerRunning) {
             pauseTimer()
         }
+        stopAlarm() // Stop alarm if leaving fragment
         val sharedPreferences = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val timePrefKey = "section_${sectionNumber}_time_left"
         sharedPreferences.edit().putLong(timePrefKey, timeLeftInMillis).apply()
@@ -140,9 +150,11 @@ class TimerSectionFragment : Fragment() {
             countDownTimer?.cancel()
             startTimer()
         }
+        stopAlarm() // Ensure alarm is stopped if time is added
     }
 
     private fun startTimer() {
+        stopAlarm() // Ensure any playing alarm is stopped
         if (timeLeftInMillis > 0) {
             countDownTimer = object : CountDownTimer(timeLeftInMillis, 1000) {
                 override fun onTick(millisUntilFinished: Long) {
@@ -155,6 +167,7 @@ class TimerSectionFragment : Fragment() {
                     startButton.text = "Start"
                     timeLeftInMillis = 0
                     updateTimerText()
+                    playAlarm()
                 }
             }.start()
 
@@ -175,6 +188,7 @@ class TimerSectionFragment : Fragment() {
         updateTimerText()
         timerRunning = false
         startButton.text = "Start"
+        stopAlarm()
     }
 
     private fun updateTimerText() {
@@ -183,6 +197,31 @@ class TimerSectionFragment : Fragment() {
         val seconds = TimeUnit.MILLISECONDS.toSeconds(timeLeftInMillis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(timeLeftInMillis))
         val timeFormatted = String.format("%02d:%02d:%02d", hours, minutes, seconds)
         timerText.text = timeFormatted
+    }
+
+    private fun playAlarm() {
+        try {
+            var notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            if (notification == null) {
+                notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            }
+            ringtone = RingtoneManager.getRingtone(requireContext(), notification)
+            ringtone?.play()
+            stopAlarmButton.visibility = View.VISIBLE
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun stopAlarm() {
+        try {
+            if (ringtone != null && ringtone!!.isPlaying) {
+                ringtone?.stop()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        stopAlarmButton.visibility = View.GONE
     }
 
     companion object {
