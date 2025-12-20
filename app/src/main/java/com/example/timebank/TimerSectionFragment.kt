@@ -1,10 +1,10 @@
 package com.example.timebank
 
+import android.content.BroadcastReceiver
 import android.content.Context
-import android.media.Ringtone
-import android.media.RingtoneManager
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
-import android.os.CountDownTimer
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,6 +12,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import java.util.concurrent.TimeUnit
 
@@ -26,14 +27,37 @@ class TimerSectionFragment : Fragment() {
     private lateinit var resetButton: Button
     private lateinit var stopAlarmButton: Button
 
-    private var countDownTimer: CountDownTimer? = null
     private var timeLeftInMillis: Long = 0
-    private var timerRunning: Boolean = false
-    private var ringtone: Ringtone? = null
 
     private val PREFS_NAME = "TimeBankPrefs"
     private var prefPrefixKey = ""
     private var sectionNumber = 1
+    
+    // To track if the timer is logically running based on UI state or service state
+    // We will rely on the service updates to dictate this, but for the start button logic
+    // we need to be careful.
+    private var isTimerRunning = false
+    private var isAlarmPlaying = false
+
+    private val timerReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == TimerService.BROADCAST_TIMER_UPDATE) {
+                timeLeftInMillis = intent.getLongExtra(TimerService.EXTRA_TIME_LEFT, 0L)
+                val finished = intent.getBooleanExtra(TimerService.EXTRA_TIMER_FINISHED, false)
+                val running = intent.getBooleanExtra(TimerService.EXTRA_TIMER_RUNNING, false)
+                isAlarmPlaying = intent.getBooleanExtra(TimerService.EXTRA_ALARM_PLAYING, false)
+                
+                isTimerRunning = running
+                updateTimerText()
+                updateStartButtonState()
+                updateStopAlarmButtonState()
+
+                if (finished) {
+                     startButton.text = "Start"
+                }
+            }
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -69,11 +93,11 @@ class TimerSectionFragment : Fragment() {
         setupPresetButtons()
 
         startButton.setOnClickListener {
-            if (timerRunning) {
-                pauseTimer()
-            } else {
-                startTimer()
-            }
+             if (isTimerRunning) {
+                 pauseTimer()
+             } else {
+                 startTimer()
+             }
         }
 
         resetButton.setOnClickListener {
@@ -85,17 +109,43 @@ class TimerSectionFragment : Fragment() {
         }
 
         updateTimerText()
+        // We might want to query the service status when view is created in case it's already running
+        // But the resume/receiver registration will handle updates shortly.
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val filter = IntentFilter(TimerService.BROADCAST_TIMER_UPDATE)
+        requireActivity().registerReceiver(timerReceiver, filter, Context.RECEIVER_EXPORTED)
+        
+        // Request an update from the service to sync UI immediately
+        val serviceIntent = Intent(requireContext(), TimerService::class.java)
+        serviceIntent.action = TimerService.ACTION_REQUEST_INFO
+        requireContext().startService(serviceIntent)
     }
 
     override fun onPause() {
         super.onPause()
-        if (timerRunning) {
-            pauseTimer()
-        }
-        stopAlarm() // Stop alarm if leaving fragment
+        requireActivity().unregisterReceiver(timerReceiver)
         val sharedPreferences = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val timePrefKey = "section_${sectionNumber}_time_left"
         sharedPreferences.edit().putLong(timePrefKey, timeLeftInMillis).apply()
+    }
+
+    private fun updateStartButtonState() {
+        if (isTimerRunning) {
+            startButton.text = "Pause"
+        } else {
+            startButton.text = "Start"
+        }
+    }
+    
+    private fun updateStopAlarmButtonState() {
+        if (isAlarmPlaying) {
+            stopAlarmButton.visibility = View.VISIBLE
+        } else {
+            stopAlarmButton.visibility = View.GONE
+        }
     }
 
     private fun setupPresetButtons() {
@@ -152,49 +202,41 @@ class TimerSectionFragment : Fragment() {
     private fun addTime(milliseconds: Long) {
         timeLeftInMillis += milliseconds
         updateTimerText()
-        if (timerRunning) {
-            countDownTimer?.cancel()
-            startTimer()
-        }
-        stopAlarm() // Ensure alarm is stopped if time is added
+        
+        val serviceIntent = Intent(requireContext(), TimerService::class.java)
+        serviceIntent.action = TimerService.ACTION_ADD_TIME
+        serviceIntent.putExtra(TimerService.EXTRA_TIME_TO_ADD, milliseconds)
+        ContextCompat.startForegroundService(requireContext(), serviceIntent)
+        
+        stopAlarm()
     }
 
     private fun startTimer() {
-        stopAlarm() // Ensure any playing alarm is stopped
+        stopAlarm()
         if (timeLeftInMillis > 0) {
-            countDownTimer = object : CountDownTimer(timeLeftInMillis, 1000) {
-                override fun onTick(millisUntilFinished: Long) {
-                    timeLeftInMillis = millisUntilFinished
-                    updateTimerText()
-                }
-
-                override fun onFinish() {
-                    timerRunning = false
-                    startButton.text = "Start"
-                    timeLeftInMillis = 0
-                    updateTimerText()
-                    playAlarm()
-                }
-            }.start()
-
-            timerRunning = true
-            startButton.text = "Pause"
+            val serviceIntent = Intent(requireContext(), TimerService::class.java)
+            serviceIntent.action = TimerService.ACTION_START
+            serviceIntent.putExtra(TimerService.EXTRA_TIME_LEFT, timeLeftInMillis)
+            ContextCompat.startForegroundService(requireContext(), serviceIntent)
         }
     }
 
     private fun pauseTimer() {
-        countDownTimer?.cancel()
-        timerRunning = false
-        startButton.text = "Start"
+        val serviceIntent = Intent(requireContext(), TimerService::class.java)
+        serviceIntent.action = TimerService.ACTION_PAUSE
+        requireContext().startService(serviceIntent)
     }
 
     private fun resetTimer() {
-        countDownTimer?.cancel()
         timeLeftInMillis = 0
         updateTimerText()
-        timerRunning = false
-        startButton.text = "Start"
+        isTimerRunning = false
+        updateStartButtonState()
         stopAlarm()
+        
+        val serviceIntent = Intent(requireContext(), TimerService::class.java)
+        serviceIntent.action = TimerService.ACTION_RESET
+        requireContext().startService(serviceIntent)
     }
 
     private fun updateTimerText() {
@@ -205,28 +247,12 @@ class TimerSectionFragment : Fragment() {
         timerText.text = timeFormatted
     }
 
-    private fun playAlarm() {
-        try {
-            var notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            if (notification == null) {
-                notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            }
-            ringtone = RingtoneManager.getRingtone(requireContext(), notification)
-            ringtone?.play()
-            stopAlarmButton.visibility = View.VISIBLE
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
     private fun stopAlarm() {
-        try {
-            if (ringtone != null && ringtone!!.isPlaying) {
-                ringtone?.stop()
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        val serviceIntent = Intent(requireContext(), TimerService::class.java)
+        serviceIntent.action = TimerService.ACTION_STOP_ALARM
+        requireContext().startService(serviceIntent)
+        
+        // Hide button immediately for responsiveness, though service update will confirm
         stopAlarmButton.visibility = View.GONE
     }
 
