@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -117,11 +116,7 @@ class TimerSectionFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         val filter = IntentFilter(TimerService.BROADCAST_TIMER_UPDATE)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requireActivity().registerReceiver(timerReceiver, filter, Context.RECEIVER_EXPORTED)
-        } else {
-            requireActivity().registerReceiver(timerReceiver, filter)
-        }
+        requireActivity().registerReceiver(timerReceiver, filter, Context.RECEIVER_EXPORTED)
         
         // Request an update from the service to sync UI immediately
         val serviceIntent = Intent(requireContext(), TimerService::class.java)
