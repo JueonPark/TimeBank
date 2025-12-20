@@ -19,6 +19,7 @@ class TimerSectionFragment : Fragment() {
 
     private lateinit var timerText: TextView
     private lateinit var startButton: Button
+    private lateinit var add5SecButton: Button
     private lateinit var add1MinButton: Button
     private lateinit var add5MinButton: Button
     private lateinit var add10MinButton: Button
@@ -54,11 +55,16 @@ class TimerSectionFragment : Fragment() {
 
         timerText = view.findViewById(R.id.timer_text)
         startButton = view.findViewById(R.id.start_button)
+        add5SecButton = view.findViewById(R.id.add_5_sec_button)
         add1MinButton = view.findViewById(R.id.add_1_min_button)
         add5MinButton = view.findViewById(R.id.add_5_min_button)
         add10MinButton = view.findViewById(R.id.add_10_min_button)
         resetButton = view.findViewById(R.id.reset_button)
         stopAlarmButton = view.findViewById(R.id.stop_alarm_button)
+
+        add5SecButton.setOnClickListener {
+            addTime(5000)
+        }
 
         setupPresetButtons()
 
