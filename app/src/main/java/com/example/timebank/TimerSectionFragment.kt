@@ -146,9 +146,9 @@ class TimerSectionFragment : Fragment() {
     }
 
     private fun setupPresetButtons() {
-        setupPresetButton(add1MinButton, 1, R.id.add_1_min_button)
-        setupPresetButton(add5MinButton, 5, R.id.add_5_min_button)
-        setupPresetButton(add10MinButton, 10, R.id.add_10_min_button)
+        setupPresetButton(add1MinButton, 5, R.id.add_1_min_button)
+        setupPresetButton(add5MinButton, 30, R.id.add_5_min_button)
+        setupPresetButton(add10MinButton, 120, R.id.add_10_min_button)
     }
 
     private fun setupPresetButton(button: Button, defaultMinutes: Int, buttonId: Int) {
