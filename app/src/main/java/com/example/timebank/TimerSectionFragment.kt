@@ -14,7 +14,6 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import java.util.concurrent.TimeUnit
 
 class TimerSectionFragment : Fragment() {
 
@@ -33,9 +32,6 @@ class TimerSectionFragment : Fragment() {
     private var prefPrefixKey = ""
     private var sectionNumber = 1
     
-    // To track if the timer is logically running based on UI state or service state
-    // We will rely on the service updates to dictate this, but for the start button logic
-    // we need to be careful.
     private var isTimerRunning = false
     private var isAlarmPlaying = false
 
@@ -109,8 +105,6 @@ class TimerSectionFragment : Fragment() {
         }
 
         updateTimerText()
-        // We might want to query the service status when view is created in case it's already running
-        // But the resume/receiver registration will handle updates shortly.
     }
 
     override fun onResume() {
@@ -118,7 +112,6 @@ class TimerSectionFragment : Fragment() {
         val filter = IntentFilter(TimerService.BROADCAST_TIMER_UPDATE)
         requireActivity().registerReceiver(timerReceiver, filter, Context.RECEIVER_EXPORTED)
         
-        // Request an update from the service to sync UI immediately
         val serviceIntent = Intent(requireContext(), TimerService::class.java)
         serviceIntent.action = TimerService.ACTION_REQUEST_INFO
         requireContext().startService(serviceIntent)
@@ -240,19 +233,13 @@ class TimerSectionFragment : Fragment() {
     }
 
     private fun updateTimerText() {
-        val hours = TimeUnit.MILLISECONDS.toHours(timeLeftInMillis)
-        val minutes = TimeUnit.MILLISECONDS.toMinutes(timeLeftInMillis) - TimeUnit.HOURS.toMinutes(hours)
-        val seconds = TimeUnit.MILLISECONDS.toSeconds(timeLeftInMillis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(timeLeftInMillis))
-        val timeFormatted = String.format("%02d:%02d:%02d", hours, minutes, seconds)
-        timerText.text = timeFormatted
+        timerText.text = TimeUtil.formatTime(timeLeftInMillis)
     }
 
     private fun stopAlarm() {
         val serviceIntent = Intent(requireContext(), TimerService::class.java)
         serviceIntent.action = TimerService.ACTION_STOP_ALARM
         requireContext().startService(serviceIntent)
-        
-        // Hide button immediately for responsiveness, though service update will confirm
         stopAlarmButton.visibility = View.GONE
     }
 

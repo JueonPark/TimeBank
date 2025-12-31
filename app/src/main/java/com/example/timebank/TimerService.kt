@@ -81,13 +81,6 @@ class TimerService : Service() {
                 timerRunning = false
                 timeLeftInMillis = 0
                 playAlarm()
-                // Stop foreground after starting alarm, or keep it?
-                // Often better to keep foreground service while alarm is ringing if we want to ensure it plays
-                // But for now, let's keep the flow as is, maybe just update notification.
-                // The original code stopped foreground here. Let's keep it running for the alarm?
-                // Actually, if we stop foreground, the service might be killed.
-                // Let's keep foreground service alive while alarm is playing?
-                // For now, adhering to user flow:
                 
                 sendUpdate(true)
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -141,7 +134,7 @@ class TimerService : Service() {
         val channel = NotificationChannel(
             CHANNEL_ID,
             "Timer Service Channel",
-            NotificationManager.IMPORTANCE_HIGH // Changed to HIGH for heads-up notification potential
+            NotificationManager.IMPORTANCE_HIGH 
         )
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(channel)
@@ -155,14 +148,15 @@ class TimerService : Service() {
         
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("TimeBank Timer")
-            .setContentText("Timer Running") // You can format time here
+            .setContentText(TimeUtil.formatTime(timeLeftInMillis))
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(pendingIntent)
+            .setOnlyAlertOnce(true) // Prevent sound/vibration on every update
             .build()
     }
     
     private fun updateNotification() {
-         val notification = buildNotification() // Ideally update content text with time
+         val notification = buildNotification()
          val manager = getSystemService(NotificationManager::class.java)
          manager.notify(1, notification)
     }
@@ -179,7 +173,7 @@ class TimerService : Service() {
             .setSmallIcon(R.mipmap.ic_launcher)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setFullScreenIntent(pendingIntent, true) // For lock screen visibility
+            .setFullScreenIntent(pendingIntent, true) 
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
@@ -196,7 +190,7 @@ class TimerService : Service() {
             ringtone = RingtoneManager.getRingtone(applicationContext, notification)
             ringtone?.play()
             isAlarmPlaying = true
-            sendUpdate(true) // Notify UI that alarm is playing
+            sendUpdate(true) 
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -208,7 +202,7 @@ class TimerService : Service() {
                 ringtone?.stop()
             }
             isAlarmPlaying = false
-            sendUpdate(false) // Notify UI that alarm stopped
+            sendUpdate(false) 
         } catch (e: Exception) {
             e.printStackTrace()
         }
