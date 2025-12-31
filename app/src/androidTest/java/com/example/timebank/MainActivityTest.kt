@@ -34,9 +34,9 @@ class MainActivityTest {
             onView(withId(R.id.start_button)).check(matches(withText("Start")))
             
             // Check default preset buttons
-            onView(withId(R.id.add_1_min_button)).check(matches(withText("Add 1 min")))
-            onView(withId(R.id.add_5_min_button)).check(matches(withText("Add 5 min")))
-            onView(withId(R.id.add_10_min_button)).check(matches(withText("Add 10 min")))
+            onView(withId(R.id.add_default_preset_0_button)).check(matches(withText("Add 1 min")))
+            onView(withId(R.id.add_default_preset_1_button)).check(matches(withText("Add 5 min")))
+            onView(withId(R.id.add_default_preset_2_button)).check(matches(withText("Add 10 min")))
         }
     }
 
@@ -44,7 +44,7 @@ class MainActivityTest {
     fun testAddOneMinute() {
         ActivityScenario.launch(MainActivity::class.java).use {
             // Click Add 1 min
-            onView(withId(R.id.add_1_min_button)).perform(click())
+            onView(withId(R.id.add_default_preset_0_button)).perform(click())
             
             // Check timer text updates to 1 minute
             onView(withId(R.id.timer_text)).check(matches(withText("00:01:00")))
@@ -55,7 +55,7 @@ class MainActivityTest {
     fun testAddMultipleTimes() {
         ActivityScenario.launch(MainActivity::class.java).use {
             // Add 1 min
-            onView(withId(R.id.add_1_min_button)).perform(click())
+            onView(withId(R.id.add_default_preset_0_button)).perform(click())
             // Add 5 sec
             onView(withId(R.id.add_5_sec_button)).perform(click())
             
@@ -68,7 +68,7 @@ class MainActivityTest {
     fun testReset() {
         ActivityScenario.launch(MainActivity::class.java).use {
             // Add 1 min
-            onView(withId(R.id.add_1_min_button)).perform(click())
+            onView(withId(R.id.add_default_preset_0_button)).perform(click())
             onView(withId(R.id.timer_text)).check(matches(withText("00:01:00")))
             
             // Click Reset

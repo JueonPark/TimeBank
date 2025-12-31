@@ -20,9 +20,9 @@ class TimerSectionFragment : Fragment() {
     private lateinit var timerText: TextView
     private lateinit var startButton: Button
     private lateinit var add5SecButton: Button
-    private lateinit var add1MinButton: Button
-    private lateinit var add5MinButton: Button
-    private lateinit var add10MinButton: Button
+    private lateinit var defaultPresetButton0: Button
+    private lateinit var defaultPresetButton1: Button
+    private lateinit var defaultPresetButton2: Button
     private lateinit var resetButton: Button
     private lateinit var stopAlarmButton: Button
 
@@ -79,9 +79,9 @@ class TimerSectionFragment : Fragment() {
         timerText = view.findViewById(R.id.timer_text)
         startButton = view.findViewById(R.id.start_button)
         add5SecButton = view.findViewById(R.id.add_5_sec_button)
-        add1MinButton = view.findViewById(R.id.add_1_min_button)
-        add5MinButton = view.findViewById(R.id.add_5_min_button)
-        add10MinButton = view.findViewById(R.id.add_10_min_button)
+        defaultPresetButton0 = view.findViewById(R.id.add_default_preset_0_button)
+        defaultPresetButton1 = view.findViewById(R.id.add_default_preset_1_button)
+        defaultPresetButton2 = view.findViewById(R.id.add_default_preset_2_button)
         resetButton = view.findViewById(R.id.reset_button)
         stopAlarmButton = view.findViewById(R.id.stop_alarm_button)
 
@@ -146,9 +146,9 @@ class TimerSectionFragment : Fragment() {
     }
 
     private fun setupPresetButtons() {
-        setupPresetButton(add1MinButton, 1, R.id.add_1_min_button)
-        setupPresetButton(add5MinButton, 5, R.id.add_5_min_button)
-        setupPresetButton(add10MinButton, 10, R.id.add_10_min_button)
+        setupPresetButton(defaultPresetButton0, 5, R.id.add_default_preset_0_button)
+        setupPresetButton(defaultPresetButton1, 30, R.id.add_default_preset_1_button)
+        setupPresetButton(defaultPresetButton2, 120, R.id.add_default_preset_2_button)
     }
 
     private fun setupPresetButton(button: Button, defaultMinutes: Int, buttonId: Int) {

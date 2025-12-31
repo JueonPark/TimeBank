@@ -64,19 +64,19 @@
             android:text="Add 5 sec" />
 
         <Button
-            android:id="@+id/add_1_min_button"
+            android:id="@+id/add_default_preset_0_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Add 1 min" />
 
         <Button
-            android:id="@+id/add_5_min_button"
+            android:id="@+id/add_default_preset_1_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Add 5 min" />
 
         <Button
-            android:id="@+id/add_10_min_button"
+            android:id="@+id/add_default_preset_2_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Add 10 min" />
