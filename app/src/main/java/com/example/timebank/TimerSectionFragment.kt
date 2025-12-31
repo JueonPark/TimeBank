@@ -38,18 +38,21 @@ class TimerSectionFragment : Fragment() {
     private val timerReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == TimerService.BROADCAST_TIMER_UPDATE) {
-                timeLeftInMillis = intent.getLongExtra(TimerService.EXTRA_TIME_LEFT, 0L)
-                val finished = intent.getBooleanExtra(TimerService.EXTRA_TIMER_FINISHED, false)
-                val running = intent.getBooleanExtra(TimerService.EXTRA_TIMER_RUNNING, false)
-                isAlarmPlaying = intent.getBooleanExtra(TimerService.EXTRA_ALARM_PLAYING, false)
-                
-                isTimerRunning = running
-                updateTimerText()
-                updateStartButtonState()
-                updateStopAlarmButtonState()
+                val id = intent.getIntExtra(TimerService.EXTRA_SECTION_ID, -1)
+                if (id == sectionNumber) {
+                    timeLeftInMillis = intent.getLongExtra(TimerService.EXTRA_TIME_LEFT, 0L)
+                    val finished = intent.getBooleanExtra(TimerService.EXTRA_TIMER_FINISHED, false)
+                    val running = intent.getBooleanExtra(TimerService.EXTRA_TIMER_RUNNING, false)
+                    isAlarmPlaying = intent.getBooleanExtra(TimerService.EXTRA_ALARM_PLAYING, false)
+                    
+                    isTimerRunning = running
+                    updateTimerText()
+                    updateStartButtonState()
+                    updateStopAlarmButtonState()
 
-                if (finished) {
-                     startButton.text = "Start"
+                    if (finished) {
+                         startButton.text = "Start"
+                    }
                 }
             }
         }
@@ -114,6 +117,7 @@ class TimerSectionFragment : Fragment() {
         
         val serviceIntent = Intent(requireContext(), TimerService::class.java)
         serviceIntent.action = TimerService.ACTION_REQUEST_INFO
+        serviceIntent.putExtra(TimerService.EXTRA_SECTION_ID, sectionNumber)
         requireContext().startService(serviceIntent)
     }
 
@@ -199,6 +203,7 @@ class TimerSectionFragment : Fragment() {
         val serviceIntent = Intent(requireContext(), TimerService::class.java)
         serviceIntent.action = TimerService.ACTION_ADD_TIME
         serviceIntent.putExtra(TimerService.EXTRA_TIME_TO_ADD, milliseconds)
+        serviceIntent.putExtra(TimerService.EXTRA_SECTION_ID, sectionNumber)
         ContextCompat.startForegroundService(requireContext(), serviceIntent)
         
         stopAlarm()
@@ -210,6 +215,7 @@ class TimerSectionFragment : Fragment() {
             val serviceIntent = Intent(requireContext(), TimerService::class.java)
             serviceIntent.action = TimerService.ACTION_START
             serviceIntent.putExtra(TimerService.EXTRA_TIME_LEFT, timeLeftInMillis)
+            serviceIntent.putExtra(TimerService.EXTRA_SECTION_ID, sectionNumber)
             ContextCompat.startForegroundService(requireContext(), serviceIntent)
         }
     }
@@ -217,6 +223,7 @@ class TimerSectionFragment : Fragment() {
     private fun pauseTimer() {
         val serviceIntent = Intent(requireContext(), TimerService::class.java)
         serviceIntent.action = TimerService.ACTION_PAUSE
+        serviceIntent.putExtra(TimerService.EXTRA_SECTION_ID, sectionNumber)
         requireContext().startService(serviceIntent)
     }
 
@@ -229,6 +236,7 @@ class TimerSectionFragment : Fragment() {
         
         val serviceIntent = Intent(requireContext(), TimerService::class.java)
         serviceIntent.action = TimerService.ACTION_RESET
+        serviceIntent.putExtra(TimerService.EXTRA_SECTION_ID, sectionNumber)
         requireContext().startService(serviceIntent)
     }
 
@@ -239,6 +247,7 @@ class TimerSectionFragment : Fragment() {
     private fun stopAlarm() {
         val serviceIntent = Intent(requireContext(), TimerService::class.java)
         serviceIntent.action = TimerService.ACTION_STOP_ALARM
+        serviceIntent.putExtra(TimerService.EXTRA_SECTION_ID, sectionNumber)
         requireContext().startService(serviceIntent)
         stopAlarmButton.visibility = View.GONE
     }

@@ -14,11 +14,12 @@ import androidx.core.app.NotificationCompat
 
 class TimerService : Service() {
 
-    private var countDownTimer: CountDownTimer? = null
-    private var timeLeftInMillis: Long = 0
-    private var timerRunning: Boolean = false
+    private val timers = mutableMapOf<Int, CountDownTimer>()
+    private val timeRemainingMap = mutableMapOf<Int, Long>()
+    private val isRunningMap = mutableMapOf<Int, Boolean>()
+    private val isAlarmPlayingMap = mutableMapOf<Int, Boolean>()
+    
     private var ringtone: Ringtone? = null
-    private var isAlarmPlaying: Boolean = false
 
     companion object {
         const val CHANNEL_ID = "TimerServiceChannel"
@@ -34,6 +35,7 @@ class TimerService : Service() {
         const val EXTRA_TIMER_FINISHED = "EXTRA_TIMER_FINISHED"
         const val EXTRA_TIMER_RUNNING = "EXTRA_TIMER_RUNNING"
         const val EXTRA_ALARM_PLAYING = "EXTRA_ALARM_PLAYING"
+        const val EXTRA_SECTION_ID = "EXTRA_SECTION_ID"
     }
 
     override fun onCreate() {
@@ -42,91 +44,113 @@ class TimerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val sectionId = intent?.getIntExtra(EXTRA_SECTION_ID, -1) ?: -1
+        
         when (intent?.action) {
             ACTION_START -> {
-                val time = intent.getLongExtra(EXTRA_TIME_LEFT, 0L)
-                if (time > 0) {
-                    timeLeftInMillis = time
-                    startTimer()
+                if (sectionId != -1) {
+                    val time = intent.getLongExtra(EXTRA_TIME_LEFT, 0L)
+                    if (time > 0) {
+                        timeRemainingMap[sectionId] = time
+                        startTimer(sectionId)
+                    }
                 }
             }
-            ACTION_PAUSE -> pauseTimer()
-            ACTION_RESET -> resetTimer()
+            ACTION_PAUSE -> if (sectionId != -1) pauseTimer(sectionId)
+            ACTION_RESET -> if (sectionId != -1) resetTimer(sectionId)
             ACTION_ADD_TIME -> {
-                val timeToAdd = intent.getLongExtra(EXTRA_TIME_TO_ADD, 0L)
-                addTime(timeToAdd)
+                if (sectionId != -1) {
+                    val timeToAdd = intent.getLongExtra(EXTRA_TIME_TO_ADD, 0L)
+                    addTime(sectionId, timeToAdd)
+                }
             }
             ACTION_REQUEST_INFO -> {
-                sendUpdate(false)
+                 if (sectionId != -1) {
+                     sendUpdate(sectionId, false)
+                 }
             }
             ACTION_STOP_ALARM -> {
-                stopAlarm()
+                if (sectionId != -1) {
+                    stopAlarm(sectionId)
+                }
             }
         }
         return START_NOT_STICKY
     }
 
-    private fun startTimer() {
-        stopAlarm()
-        if (timerRunning) return
+    private fun startTimer(sectionId: Int) {
+        stopAlarm(sectionId)
+        if (isRunningMap[sectionId] == true) return
 
-        countDownTimer = object : CountDownTimer(timeLeftInMillis, 1000) {
+        val timeLeft = timeRemainingMap[sectionId] ?: 0L
+        if (timeLeft <= 0) return
+
+        timers[sectionId]?.cancel()
+        
+        val timer = object : CountDownTimer(timeLeft, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                timeLeftInMillis = millisUntilFinished
-                sendUpdate(false)
+                timeRemainingMap[sectionId] = millisUntilFinished
+                sendUpdate(sectionId, false)
                 updateNotification()
             }
 
             override fun onFinish() {
-                timerRunning = false
-                timeLeftInMillis = 0
-                playAlarm()
+                isRunningMap[sectionId] = false
+                timeRemainingMap[sectionId] = 0
+                playAlarm(sectionId)
                 
-                sendUpdate(true)
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                showFinishedNotification()
+                sendUpdate(sectionId, true)
+                updateServiceState()
+                showFinishedNotification(sectionId)
             }
         }.start()
 
-        timerRunning = true
-        startForeground(1, buildNotification())
-        sendUpdate(false)
+        timers[sectionId] = timer
+        isRunningMap[sectionId] = true
+        updateServiceState()
+        sendUpdate(sectionId, false)
     }
 
-    private fun pauseTimer() {
-        countDownTimer?.cancel()
-        timerRunning = false
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        sendUpdate(false)
+    private fun pauseTimer(sectionId: Int) {
+        timers[sectionId]?.cancel()
+        isRunningMap[sectionId] = false
+        updateServiceState()
+        sendUpdate(sectionId, false)
     }
 
-    private fun resetTimer() {
-        countDownTimer?.cancel()
-        timeLeftInMillis = 0
-        timerRunning = false
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        sendUpdate(false)
-        stopAlarm()
+    private fun resetTimer(sectionId: Int) {
+        timers[sectionId]?.cancel()
+        timeRemainingMap[sectionId] = 0
+        isRunningMap[sectionId] = false
+        updateServiceState()
+        sendUpdate(sectionId, false)
+        stopAlarm(sectionId)
     }
 
-    private fun addTime(millis: Long) {
-        timeLeftInMillis += millis
-        stopAlarm()
-        if (timerRunning) {
-            countDownTimer?.cancel()
-            timerRunning = false 
-            startTimer() // Restart with new time
+    private fun addTime(sectionId: Int, millis: Long) {
+        val current = timeRemainingMap[sectionId] ?: 0L
+        timeRemainingMap[sectionId] = current + millis
+        
+        stopAlarm(sectionId)
+        
+        if (isRunningMap[sectionId] == true) {
+            timers[sectionId]?.cancel()
+            isRunningMap[sectionId] = false 
+            startTimer(sectionId) // Restart with new time
         } else {
-             sendUpdate(false)
+             sendUpdate(sectionId, false)
         }
     }
 
-    private fun sendUpdate(finished: Boolean) {
+    private fun sendUpdate(sectionId: Int, finished: Boolean) {
+        if (!timeRemainingMap.containsKey(sectionId)) return
+
         val intent = Intent(BROADCAST_TIMER_UPDATE)
-        intent.putExtra(EXTRA_TIME_LEFT, timeLeftInMillis)
+        intent.putExtra(EXTRA_SECTION_ID, sectionId)
+        intent.putExtra(EXTRA_TIME_LEFT, timeRemainingMap[sectionId] ?: 0L)
         intent.putExtra(EXTRA_TIMER_FINISHED, finished)
-        intent.putExtra(EXTRA_TIMER_RUNNING, timerRunning)
-        intent.putExtra(EXTRA_ALARM_PLAYING, isAlarmPlaying)
+        intent.putExtra(EXTRA_TIMER_RUNNING, isRunningMap[sectionId] ?: false)
+        intent.putExtra(EXTRA_ALARM_PLAYING, isAlarmPlayingMap[sectionId] ?: false)
         sendBroadcast(intent)
     }
 
@@ -146,22 +170,41 @@ class TimerService : Service() {
             this, 0, notificationIntent, android.app.PendingIntent.FLAG_IMMUTABLE
         )
         
+        val activeTimers = isRunningMap.filterValues { it }.keys
+        val contentText = if (activeTimers.isNotEmpty()) {
+             activeTimers.joinToString(" | ") { id -> 
+                 "Sec $id: ${TimeUtil.formatTime(timeRemainingMap[id] ?: 0)}"
+             }
+        } else {
+            "TimeBank Timer"
+        }
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("TimeBank Timer")
-            .setContentText(TimeUtil.formatTime(timeLeftInMillis))
+            .setContentText(contentText)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(pendingIntent)
-            .setOnlyAlertOnce(true) // Prevent sound/vibration on every update
+            .setOnlyAlertOnce(true) 
             .build()
     }
     
     private fun updateNotification() {
-         val notification = buildNotification()
-         val manager = getSystemService(NotificationManager::class.java)
-         manager.notify(1, notification)
+         if (isRunningMap.values.any { it }) {
+             val notification = buildNotification()
+             val manager = getSystemService(NotificationManager::class.java)
+             manager.notify(1, notification)
+         }
+    }
+    
+    private fun updateServiceState() {
+        if (isRunningMap.values.any { it }) {
+            startForeground(1, buildNotification())
+        } else {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        }
     }
 
-    private fun showFinishedNotification() {
+    private fun showFinishedNotification(sectionId: Int) {
          val notificationIntent = Intent(this, MainActivity::class.java)
          val pendingIntent = android.app.PendingIntent.getActivity(
              this, 0, notificationIntent, android.app.PendingIntent.FLAG_IMMUTABLE
@@ -169,7 +212,7 @@ class TimerService : Service() {
 
          val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("TimeBank Timer")
-            .setContentText("Time is up!")
+            .setContentText("Section $sectionId: Time is up!")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -178,31 +221,40 @@ class TimerService : Service() {
             .setAutoCancel(true)
             .build()
          val manager = getSystemService(NotificationManager::class.java)
-         manager.notify(2, notification)
+         manager.notify(2 + sectionId, notification)
     }
 
-    private fun playAlarm() {
+    private fun playAlarm(sectionId: Int) {
         try {
-            var notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            if (notification == null) {
-                notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            isAlarmPlayingMap[sectionId] = true
+            
+            // Play ringtone if not already playing
+            if (ringtone == null || !ringtone!!.isPlaying) {
+                var notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                if (notification == null) {
+                    notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                }
+                ringtone = RingtoneManager.getRingtone(applicationContext, notification)
+                ringtone?.play()
             }
-            ringtone = RingtoneManager.getRingtone(applicationContext, notification)
-            ringtone?.play()
-            isAlarmPlaying = true
-            sendUpdate(true) 
+            
+            sendUpdate(sectionId, true) 
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    private fun stopAlarm() {
+    private fun stopAlarm(sectionId: Int) {
         try {
-            if (ringtone != null && ringtone!!.isPlaying) {
-                ringtone?.stop()
+            isAlarmPlayingMap[sectionId] = false
+            sendUpdate(sectionId, false)
+            
+            // Stop ringtone if no alarms are playing
+            if (isAlarmPlayingMap.values.none { it }) {
+                if (ringtone != null && ringtone!!.isPlaying) {
+                    ringtone?.stop()
+                }
             }
-            isAlarmPlaying = false
-            sendUpdate(false) 
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -213,8 +265,10 @@ class TimerService : Service() {
     }
     
     override fun onDestroy() {
-        countDownTimer?.cancel()
-        stopAlarm()
+        timers.values.forEach { it.cancel() }
+        if (ringtone != null && ringtone!!.isPlaying) {
+            ringtone?.stop()
+        }
         super.onDestroy()
     }
 }
