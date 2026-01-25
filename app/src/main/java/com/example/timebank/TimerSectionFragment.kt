@@ -31,7 +31,7 @@ class TimerSectionFragment : Fragment() {
     private val PREFS_NAME = "TimeBankPrefs"
     private var prefPrefixKey = ""
     private var sectionNumber = 1
-    
+
     private var isTimerRunning = false
     private var isAlarmPlaying = false
 
@@ -44,14 +44,14 @@ class TimerSectionFragment : Fragment() {
                     val finished = intent.getBooleanExtra(TimerService.EXTRA_TIMER_FINISHED, false)
                     val running = intent.getBooleanExtra(TimerService.EXTRA_TIMER_RUNNING, false)
                     isAlarmPlaying = intent.getBooleanExtra(TimerService.EXTRA_ALARM_PLAYING, false)
-                    
+
                     isTimerRunning = running
                     updateTimerText()
                     updateStartButtonState()
                     updateStopAlarmButtonState()
 
                     if (finished) {
-                         startButton.text = "Start"
+                        startButton.text = "Start"
                     }
                 }
             }
@@ -72,10 +72,6 @@ class TimerSectionFragment : Fragment() {
         sectionNumber = arguments?.getInt("section_number") ?: 1
         prefPrefixKey = "section_${sectionNumber}_preset_time_"
 
-        val sharedPreferences = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val timePrefKey = "section_${sectionNumber}_time_left"
-        timeLeftInMillis = sharedPreferences.getLong(timePrefKey, 0L)
-
         timerText = view.findViewById(R.id.timer_text)
         startButton = view.findViewById(R.id.start_button)
         add5SecButton = view.findViewById(R.id.add_5_sec_button)
@@ -92,17 +88,17 @@ class TimerSectionFragment : Fragment() {
         setupPresetButtons()
 
         startButton.setOnClickListener {
-             if (isTimerRunning) {
-                 pauseTimer()
-             } else {
-                 startTimer()
-             }
+            if (isTimerRunning) {
+                pauseTimer()
+            } else {
+                startTimer()
+            }
         }
 
         resetButton.setOnClickListener {
             resetTimer()
         }
-        
+
         stopAlarmButton.setOnClickListener {
             stopAlarm()
         }
@@ -114,7 +110,7 @@ class TimerSectionFragment : Fragment() {
         super.onResume()
         val filter = IntentFilter(TimerService.BROADCAST_TIMER_UPDATE)
         requireActivity().registerReceiver(timerReceiver, filter, Context.RECEIVER_EXPORTED)
-        
+
         val serviceIntent = Intent(requireContext(), TimerService::class.java)
         serviceIntent.action = TimerService.ACTION_REQUEST_INFO
         serviceIntent.putExtra(TimerService.EXTRA_SECTION_ID, sectionNumber)
@@ -124,9 +120,6 @@ class TimerSectionFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         requireActivity().unregisterReceiver(timerReceiver)
-        val sharedPreferences = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val timePrefKey = "section_${sectionNumber}_time_left"
-        sharedPreferences.edit().putLong(timePrefKey, timeLeftInMillis).apply()
     }
 
     private fun updateStartButtonState() {
@@ -136,7 +129,7 @@ class TimerSectionFragment : Fragment() {
             startButton.text = "Start"
         }
     }
-    
+
     private fun updateStopAlarmButtonState() {
         if (isAlarmPlaying) {
             stopAlarmButton.visibility = View.VISIBLE
@@ -197,15 +190,12 @@ class TimerSectionFragment : Fragment() {
     }
 
     private fun addTime(milliseconds: Long) {
-        timeLeftInMillis += milliseconds
-        updateTimerText()
-        
         val serviceIntent = Intent(requireContext(), TimerService::class.java)
         serviceIntent.action = TimerService.ACTION_ADD_TIME
         serviceIntent.putExtra(TimerService.EXTRA_TIME_TO_ADD, milliseconds)
         serviceIntent.putExtra(TimerService.EXTRA_SECTION_ID, sectionNumber)
         ContextCompat.startForegroundService(requireContext(), serviceIntent)
-        
+
         stopAlarm()
     }
 
@@ -228,12 +218,6 @@ class TimerSectionFragment : Fragment() {
     }
 
     private fun resetTimer() {
-        timeLeftInMillis = 0
-        updateTimerText()
-        isTimerRunning = false
-        updateStartButtonState()
-        stopAlarm()
-        
         val serviceIntent = Intent(requireContext(), TimerService::class.java)
         serviceIntent.action = TimerService.ACTION_RESET
         serviceIntent.putExtra(TimerService.EXTRA_SECTION_ID, sectionNumber)
